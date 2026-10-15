@@ -17,6 +17,9 @@ STOCK_TEXT="#c0caf5"
 DEFAULT_LOGO=aum
 MENU_BEGIN="// >>> omarchy-aum-logo >>>"
 MENU_END="// <<< omarchy-aum-logo <<<"
+HYPR_FILE="$HOME/.config/hypr/hyprland.lua"
+HYPR_BEGIN="-- >>> omarchy-aum-logo >>>"
+HYPR_END="-- <<< omarchy-aum-logo <<<"
 
 # The package ships the floating-terminal override and the uwsm env file that
 # puts it first on PATH system-wide. A checkout installs both per user instead.
@@ -82,16 +85,14 @@ same_logo() {
   [[ ${diff%% *} == 0 ]]
 }
 
-# PATH of the running Hyprland session, which keybindings and menus launch the
-# floating terminal with. Falls back to the systemd user manager's PATH.
+# PATH of the running session, which the bar, menus and keybindings launch the
+# floating terminal with. Omarchy's autostart copies Hyprland's environment to
+# the systemd user manager after the Hyprland config has changed it. Hyprland's
+# /proc/<pid>/environ is from before those changes, so it can't be used here.
 session_path() {
-  local pid
-  pid=$(pgrep -u "$UID" -x Hyprland | head -n 1)
-  if [[ -n $pid && -r /proc/$pid/environ ]]; then
-    tr '\0' '\n' <"/proc/$pid/environ" | sed -n 's/^PATH=//p'
-  else
-    systemctl --user show-environment 2>/dev/null | sed -n 's/^PATH=//p'
-  fi
+  local path
+  path=$(systemctl --user show-environment 2>/dev/null | sed -n 's/^PATH=//p')
+  echo "${path:-$PATH}"
 }
 
 # Background and text colors the login screens use now, so reinstalling the

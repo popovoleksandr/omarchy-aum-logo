@@ -37,7 +37,9 @@ require_omarchy() {
 
 # A checkout puts the floating-terminal override and its env file in your home;
 # the package ships them system-wide, so it removes checkout copies instead.
+# Either way, hyprland.lua gets the block that keeps the override first on PATH.
 install_terminal_override() {
+  install_hypr_block
   if $PACKAGED; then
     remove_checkout_files
     return
@@ -67,6 +69,39 @@ remove_checkout_files() {
     fi
   done
   rmdir "$HOME/.config/omarchy/bin" "$HOME/.config/uwsm/env.d" "$HOME/.config/uwsm" 2>/dev/null || true
+}
+
+# Omarchy's Hyprland config moves $OMARCHY_PATH/bin to the front of PATH after
+# the uwsm env file has run, so its own omarchy-show-logo wins. A block at the
+# end of hyprland.lua, which runs after Omarchy's defaults, moves the override
+# back in front.
+install_hypr_block() {
+  local tmp
+  if [[ ! -f $HYPR_FILE ]]; then
+    warn "$HYPR_FILE is missing, so the floating terminal keeps Omarchy's logo"
+    return
+  fi
+  tmp=$(mktemp)
+  strip_block "$HYPR_FILE" "$HYPR_BEGIN" "$HYPR_END" >"$tmp"
+  { echo; sed "s|@OVERRIDE_DIR@|$(dirname "$OVERRIDE_BIN")|g" "$ROOT/share/hyprland.lua"; } >>"$tmp"
+  if cmp -s "$tmp" "$HYPR_FILE"; then
+    rm -f "$tmp"
+    return
+  fi
+  cp "$HYPR_FILE" "$HYPR_FILE.bak.omarchy-aum-logo"
+  cat "$tmp" >"$HYPR_FILE"
+  rm -f "$tmp"
+  echo "Added the floating terminal's PATH block to $HYPR_FILE (backup: $HYPR_FILE.bak.omarchy-aum-logo)"
+}
+
+remove_hypr_block() {
+  local tmp
+  grep -qF -e "$HYPR_BEGIN" "$HYPR_FILE" 2>/dev/null || return 0
+  tmp=$(mktemp)
+  strip_block "$HYPR_FILE" "$HYPR_BEGIN" "$HYPR_END" >"$tmp"
+  cat "$tmp" >"$HYPR_FILE"
+  rm -f "$tmp"
+  echo "Removed the floating terminal's PATH block from $HYPR_FILE"
 }
 
 cmd_set() {
@@ -129,6 +164,7 @@ cmd_reset() {
   logo=${logo:-$DEFAULT_LOGO}
 
   remove_checkout_files
+  remove_hypr_block
 
   if logo_path=$(logo_file "$logo" 2>/dev/null) && cmp -s "$logo_path" "$BRANDING_DIR/screensaver.txt"; then
     cp "${OMARCHY_PATH:-/usr/share/omarchy}/logo.txt" "$BRANDING_DIR/screensaver.txt"
@@ -239,6 +275,11 @@ cmd_status() {
     fi
 
     echo "Floating terminal"
+    if grep -qF -e "$HYPR_BEGIN" "$HYPR_FILE" 2>/dev/null; then
+      ok "$HYPR_FILE puts the override first on PATH"
+    else
+      bad "$HYPR_FILE doesn't put the override first on PATH: $CMD set $logo"
+    fi
     resolved=$(PATH=$(session_path) command -v omarchy-show-logo) || true
     if [[ $resolved == "$OVERRIDE_BIN" ]]; then
       ok "the running session uses $OVERRIDE_BIN"
@@ -273,7 +314,7 @@ cmd_setup() {
   [[ -s $MENU_FILE ]] || printf '{\n}\n' >"$MENU_FILE"
 
   tmp=$(mktemp)
-  strip_menu_block "$MENU_FILE" >"$tmp"
+  strip_block "$MENU_FILE" "$MENU_BEGIN" "$MENU_END" >"$tmp"
   # Insert right after the opening brace. Every entry ends with a comma, which
   # is valid before other entries and dropped by the menu parser before "}".
   if ! grep -qE '^[[:space:]]*\{[[:space:]]*$' "$tmp"; then
@@ -304,7 +345,7 @@ cmd_unsetup() {
     return
   fi
   tmp=$(mktemp)
-  strip_menu_block "$MENU_FILE" >"$tmp"
+  strip_block "$MENU_FILE" "$MENU_BEGIN" "$MENU_END" >"$tmp"
   menu_jsonc_valid "$tmp" || { rm -f "$tmp"; die "removing the entries would break $MENU_FILE; it is unchanged"; }
   cat "$tmp" >"$MENU_FILE"
   rm -f "$tmp"
@@ -312,14 +353,18 @@ cmd_unsetup() {
   echo "Removed Style > Logo from $MENU_FILE"
 }
 
-# Prints a menu file without omarchy-aum-logo's marked block (matched with or
-# without indentation).
-strip_menu_block() {
-  awk -v b="$MENU_BEGIN" -v e="$MENU_END" '
+# Prints a file without omarchy-aum-logo's block between the markers $2 and $3
+# (matched with or without indentation), and without an empty line right before
+# it, which install_hypr_block adds.
+strip_block() {
+  awk -v b="$2" -v e="$3" '
     { line = $0; sub(/^[[:space:]]+/, "", line) }
-    line == b { skip = 1 }
-    !skip { print }
-    line == e { skip = 0 }
+    line == b { skip = 1; blank = 0 }
+    skip { if (line == e) skip = 0; next }
+    blank { print ""; blank = 0 }
+    $0 == "" { blank = 1; next }
+    { print }
+    END { if (blank) print "" }
   ' "$1"
 }
 

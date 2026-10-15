@@ -10,6 +10,8 @@ post_upgrade() {
   # Refresh the Style > Logo entries in case they changed.
   cat <<'MSG'
 ==> omarchy-aum-logo: run "omarchy-aum-logo setup" to refresh Style > Logo in the Omarchy menu.
+    If you picked a logo, pick it again in Style > Logo (or run "omarchy-aum-logo set <logo>")
+    and log out and back in once, so the floating Omarchy terminal shows it.
 MSG
 }
 

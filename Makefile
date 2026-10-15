@@ -12,6 +12,7 @@ install:
 	install -Dm755 lib/render-logo $(SHARE)/lib/render-logo
 	install -Dm644 -t $(SHARE)/logos logos/*.txt
 	install -Dm644 share/menu.jsonc $(SHARE)/share/menu.jsonc
+	install -Dm644 share/hyprland.lua $(SHARE)/share/hyprland.lua
 	install -Dm755 share/omarchy-show-logo $(SHARE)/override/omarchy-show-logo
 	install -d $(DESTDIR)$(PREFIX)/bin
 	ln -sf ../share/omarchy-aum-logo/bin/omarchy-aum-logo $(DESTDIR)$(PREFIX)/bin/omarchy-aum-logo
