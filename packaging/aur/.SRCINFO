@@ -10,6 +10,6 @@ pkgbase = omarchy-aum-logo
 	depends = imagemagick
 	depends = jq
 	source = omarchy-aum-logo-1.0.2.tar.gz::https://github.com/popovoleksandr/omarchy-aum-logo/archive/refs/tags/v1.0.2.tar.gz
-	sha256sums = SKIP
+	sha256sums = 5c290faa17560fcca17fe28e1e9cb055c164a893130df133557a35468f70e4d5
 
 pkgname = omarchy-aum-logo
