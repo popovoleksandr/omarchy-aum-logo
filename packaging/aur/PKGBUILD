@@ -1,6 +1,6 @@
 # Maintainer: Oleksandr Popov <anantaramdas@outlook.com>
 pkgname=omarchy-aum-logo
-pkgver=1.0.1
+pkgver=1.0.2
 pkgrel=1
 pkgdesc="Custom Omarchy logo (ॐarchy, ॐkārchy, oṃarchy, oṃkārchy or your own) for the screensaver, boot/login screens and Omarchy terminal"
 arch=(any)
@@ -9,7 +9,7 @@ license=(MIT)
 depends=(bash imagemagick jq)
 install=omarchy-aum-logo.install
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('13f11cf04914c789bb64b3ece95455c12646d47044f10f70503e99250bdee442')
+sha256sums=('SKIP')
 
 package() {
   cd "$pkgname-$pkgver"
